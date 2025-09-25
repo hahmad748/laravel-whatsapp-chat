@@ -1,0 +1,74 @@
+{
+    "name": "devsfort/laravel-whatsapp-chat",
+    "description": "A comprehensive WhatsApp Business Cloud API integration package for Laravel with real-time chat functionality",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Haseeb Ahmad",
+            "email": "haseeb@devsfort.com"
+        }
+    ],
+    "keywords": [
+        "laravel",
+        "whatsapp",
+        "chat",
+        "messaging",
+        "real-time",
+        "pusher",
+        "broadcasting",
+        "api",
+        "business",
+        "cloud",
+        "vue",
+        "inertia"
+    ],
+    "require": {
+        "php": "^8.1",
+        "illuminate/support": "^10.0|^11.0",
+        "illuminate/database": "^10.0|^11.0",
+        "illuminate/http": "^10.0|^11.0",
+        "illuminate/broadcasting": "^10.0|^11.0",
+        "illuminate/console": "^10.0|^11.0",
+        "illuminate/events": "^10.0|^11.0",
+        "illuminate/queue": "^10.0|^11.0",
+        "pusher/pusher-php-server": "^7.0",
+        "guzzlehttp/guzzle": "^7.0",
+        "inertiajs/inertia-laravel": "^0.6.0",
+        "tightenco/ziggy": "^1.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0",
+        "orchestra/testbench": "^8.0|^9.0",
+        "mockery/mockery": "^1.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "DevsFort\\LaravelWhatsappChat\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "DevsFort\\LaravelWhatsappChat\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "DevsFort\\LaravelWhatsappChat\\WhatsAppChatServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "scripts": {
+        "test": "phpunit",
+        "test-coverage": "phpunit --coverage-html coverage"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
+    }
+}

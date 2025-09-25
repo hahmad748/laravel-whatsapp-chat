@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true">
+    <testsuites>
+        <testsuite name="Package Test Suite">
+            <directory>tests</directory>
+        </testsuite>
+    </testsuites>
+    <coverage>
+        <include>
+            <directory suffix=".php">src</directory>
+        </include>
+    </coverage>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="DB_CONNECTION" value="sqlite"/>
+        <env name="DB_DATABASE" value=":memory:"/>
+        <env name="WHATSAPP_USE_MOCK_MODE" value="true"/>
+        <env name="WHATSAPP_ACCESS_TOKEN" value="test_token"/>
+        <env name="WHATSAPP_PHONE_NUMBER_ID" value="test_phone_id"/>
+        <env name="WHATSAPP_WEBHOOK_VERIFY_TOKEN" value="test_verify_token"/>
+    </php>
+</phpunit>

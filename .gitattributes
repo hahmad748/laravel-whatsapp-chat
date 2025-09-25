@@ -1,0 +1,53 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Custom for Visual Studio
+*.cs     diff=csharp
+
+# Standard to msysgit
+*.doc	 diff=astextplain
+*.DOC	 diff=astextplain
+*.docx diff=astextplain
+*.DOCX diff=astextplain
+*.dot  diff=astextplain
+*.DOT  diff=astextplain
+*.pdf  diff=astextplain
+*.PDF	 diff=astextplain
+*.rtf	 diff=astextplain
+*.RTF	 diff=astextplain
+
+# Mark these files as binary
+*.png diff
+*.jpg diff
+*.jpeg diff
+*.gif diff
+*.ico diff
+*.mov diff
+*.mp4 diff
+*.mp3 diff
+*.flv diff
+*.fla diff
+*.swf diff
+*.gz diff
+*.zip diff
+*.7z diff
+*.ttf diff
+*.eot diff
+*.woff diff
+*.woff2 diff
+*.pyc diff
+*.pdf diff
+*.ai diff
+*.psd diff
+
+# Exclude from package
+/.github/
+/.gitignore
+/.gitattributes
+/phpunit.xml
+/tests/
+/node_modules/
+/package.json
+/package-lock.json
+/vite.config.js
+/example-setup.sh

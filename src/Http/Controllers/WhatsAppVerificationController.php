@@ -4,6 +4,7 @@ namespace DevsFort\LaravelWhatsappChat\Http\Controllers;
 
 use DevsFort\LaravelWhatsappChat\Services\WhatsAppService;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -25,7 +26,7 @@ class WhatsAppVerificationController extends Controller
     {
         $user = Auth::user();
 
-        return Inertia::render('whatsapp-chat::Profile/WhatsAppVerification', [
+        return Inertia::render('Profile/WhatsAppVerification', [
             'whatsapp_number' => $user->whatsapp_number,
             'whatsapp_verified' => $user->whatsapp_verified,
             'whatsapp_verified_at' => $user->whatsapp_verified_at,
@@ -125,7 +126,7 @@ class WhatsAppVerificationController extends Controller
     /**
      * Remove WhatsApp number
      */
-    public function remove(Request $request)
+    public function removeWhatsApp(Request $request)
     {
         $user = Auth::user();
 

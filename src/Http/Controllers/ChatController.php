@@ -6,6 +6,7 @@ use DevsFort\LaravelWhatsappChat\Services\WhatsAppService;
 use DevsFort\LaravelWhatsappChat\Models\WhatsAppMessage;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use App\Http\Controllers\Controller;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -45,7 +46,7 @@ class ChatController extends Controller
             $usersWithWhatsApp = $this->whatsappService->getUsersWithWhatsApp();
         }
 
-        return Inertia::render('whatsapp-chat::Chat/Index', [
+        return Inertia::render('Chat/Index', [
             'conversations' => $conversations,
             'selectedConversation' => $selectedConversation,
             'messages' => $messages,

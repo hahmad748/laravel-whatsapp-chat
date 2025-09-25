@@ -41,21 +41,18 @@ class WhatsAppChatServiceProvider extends ServiceProvider
             __DIR__ . '/../database/migrations' => database_path('migrations'),
         ], 'whatsapp-chat-migrations');
 
-        // Publish views
-        $this->publishes([
-            __DIR__ . '/../resources/views' => resource_path('views/vendor/whatsapp-chat'),
-        ], 'whatsapp-chat-views');
-
         // Publish Vue components
         $this->publishes([
             __DIR__ . '/../resources/js' => resource_path('js/vendor/whatsapp-chat'),
         ], 'whatsapp-chat-assets');
 
+        // Publish package assets (CSS, JS, etc.)
+        $this->publishes([
+            __DIR__ . '/../resources' => resource_path('views/vendor/whatsapp-chat'),
+        ], 'whatsapp-chat-views');
+
         // Load migrations
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
-
-        // Load views
-        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'whatsapp-chat');
 
         // Register routes
         $this->registerRoutes();
@@ -85,19 +82,25 @@ class WhatsAppChatServiceProvider extends ServiceProvider
 
             // Chat routes
             Route::middleware(['auth'])->group(function () {
-                Route::get('/chat', [ChatController::class, 'index'])->name('whatsapp.chat.index');
+                Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
                 Route::get('/chat/messages/{conversationId}', [ChatController::class, 'getMessages'])
-                    ->name('whatsapp.chat.messages');
+                    ->name('chat.messages');
                 Route::post('/chat/send', [ChatController::class, 'sendMessage'])
-                    ->name('whatsapp.chat.send');
+                    ->name('chat.send');
+                Route::get('/chat/conversations', [ChatController::class, 'getConversations'])
+                    ->name('chat.conversations');
             });
 
             // Verification routes
             Route::middleware(['auth'])->group(function () {
+                Route::get('/verification', [WhatsAppVerificationController::class, 'show'])
+                    ->name('whatsapp.verification.show');
                 Route::post('/verify/send-code', [WhatsAppVerificationController::class, 'sendVerificationCode'])
-                    ->name('whatsapp.verify.send-code');
+                    ->name('whatsapp.verification.send');
                 Route::post('/verify/verify-code', [WhatsAppVerificationController::class, 'verifyCode'])
-                    ->name('whatsapp.verify.verify-code');
+                    ->name('whatsapp.verification.verify');
+                Route::post('/verify/remove', [WhatsAppVerificationController::class, 'removeWhatsApp'])
+                    ->name('whatsapp.verification.remove');
             });
 
             // Broadcasting authentication

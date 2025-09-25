@@ -26,8 +26,18 @@ class ChatController extends Controller
     {
         $user = $request->user();
 
+        // Check if user object exists
+        if (!$user) {
+            return redirect()->route('login')
+                ->with('error', 'You must be logged in to access chat.');
+        }
+
+        // Get user type safely (default to 'user' if not set)
+        $userType = $user->type ?? 'user';
+        $isAdmin = $userType === 'admin';
+
         // Check if user has verified WhatsApp number (only for regular users)
-        if ($user->type !== 'admin' && !$user->whatsapp_verified) {
+        if (!$isAdmin && !($user->whatsapp_verified ?? false)) {
             return redirect()->route('whatsapp.verification.show')
                 ->with('error', 'You must verify your WhatsApp number before accessing chat.');
         }
@@ -42,7 +52,7 @@ class ChatController extends Controller
 
         // For admin users, get all users with verified WhatsApp numbers
         $usersWithWhatsApp = [];
-        if ($user->type === 'admin') {
+        if ($isAdmin) {
             $usersWithWhatsApp = $this->whatsappService->getUsersWithWhatsApp();
         }
 
@@ -51,7 +61,7 @@ class ChatController extends Controller
             'selectedConversation' => $selectedConversation,
             'messages' => $messages,
             'user' => $user,
-            'isAdmin' => $user->type === 'admin',
+            'isAdmin' => $isAdmin,
             'usersWithWhatsApp' => $usersWithWhatsApp
         ]);
     }
@@ -76,8 +86,17 @@ class ChatController extends Controller
     {
         $user = $request->user();
 
+        // Check if user exists
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You must be logged in to send messages.'
+            ], 401);
+        }
+
         // Only admins can send messages
-        if ($user->type !== 'admin') {
+        $userType = $user->type ?? 'user';
+        if ($userType !== 'admin') {
             return response()->json([
                 'success' => false,
                 'message' => 'Only administrators can send messages.'

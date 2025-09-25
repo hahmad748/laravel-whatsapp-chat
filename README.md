@@ -197,6 +197,27 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 This package is open-sourced software licensed under the [MIT license](LICENSE).
 
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**Error: "Cannot read properties of undefined (reading 'type')"**
+- **Cause**: The `type` field is missing from your User model
+- **Solution**: Add the `type` field to your users table migration and User model
+- **Steps**:
+  1. Run: `php artisan make:migration add_whatsapp_fields_to_users_table`
+  2. Add `$table->string('type')->default('user');` to the migration
+  3. Add `'type'` to the `$fillable` array in your User model
+  4. Run: `php artisan migrate`
+
+**Error: "Class 'App\Http\Controllers\Controller' not found"**
+- **Cause**: Missing base Controller class
+- **Solution**: Create the base Controller class or update the package controllers
+
+**Error: "Route not found"**
+- **Cause**: Routes not properly registered
+- **Solution**: Clear route cache: `php artisan route:clear`
+
 ## 🆘 Support
 
 - [GitHub Issues](https://github.com/hahmad748/laravel-whatsapp-chat/issues)

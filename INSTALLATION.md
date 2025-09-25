@@ -78,7 +78,7 @@ return new class extends Migration
             $table->boolean('whatsapp_verified')->default(false);
             $table->timestamp('whatsapp_verified_at')->nullable();
             $table->string('whatsapp_verification_code')->nullable();
-            $table->string('type')->default('user'); // For admin functionality
+            $table->string('type')->default('user'); // REQUIRED: For admin functionality
         });
     }
 
@@ -102,6 +102,8 @@ Run the migration:
 ```bash
 php artisan migrate
 ```
+
+**Important**: The `type` field is required for the package to work properly. It determines if a user is an admin or regular user.
 
 ### Step 7: Update User Model
 
@@ -128,7 +130,7 @@ class User extends Authenticatable
         'whatsapp_verified',
         'whatsapp_verified_at',
         'whatsapp_verification_code',
-        'type',
+        'type', // REQUIRED: For admin functionality
     ];
 
     protected $hidden = [

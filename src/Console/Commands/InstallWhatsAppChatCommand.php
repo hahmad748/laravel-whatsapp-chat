@@ -253,7 +253,10 @@ class InstallWhatsAppChatCommand extends Command
         $this->line('6. Set up your WhatsApp webhook URL:');
         $this->line('   <comment>https://yourdomain.com/webhook/whatsapp</comment>');
         $this->newLine();
-        $this->line('7. Run <comment>php artisan serve</comment> and visit <comment>/chat</comment> to test!');
+        $this->line('7. (Optional) Test your User model setup:');
+        $this->line('   <comment>php artisan tinker --execute="require \'vendor/devsfort/laravel-whatsapp-chat/test-user-model.php\';"</comment>');
+        $this->newLine();
+        $this->line('8. Run <comment>php artisan serve</comment> and visit <comment>/chat</comment> to test!');
         $this->newLine();
         $this->info('📚 For more information, visit: https://github.com/devsfort/laravel-whatsapp-chat');
     }

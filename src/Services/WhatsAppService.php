@@ -483,7 +483,7 @@ class WhatsAppService
             Log::info('Notifying admin users about inbound message', ['admin_count' => $adminUsers->count()]);
             foreach ($adminUsers as $admin) {
                 $sender = User::where('whatsapp_number', $message->from)->first();
-                $admin->notify(new MessageReceivedNotification($messageData, $sender));
+                $admin->notify(new MessageReceivedNotification($message, $sender));
                 Log::info('Notification sent to admin', [
                     'admin_id' => $admin->id,
                     'admin_name' => $admin->name,
@@ -501,7 +501,7 @@ class WhatsAppService
 
             if ($recipient) {
                 $admin = User::where('type', 'admin')->first();
-                $recipient->notify(new MessageReceivedNotification($messageData, $admin));
+                $recipient->notify(new MessageReceivedNotification($message, $admin));
                 Log::info('Notification sent to recipient user', [
                     'recipient_id' => $recipient->id,
                     'recipient_name' => $recipient->name,

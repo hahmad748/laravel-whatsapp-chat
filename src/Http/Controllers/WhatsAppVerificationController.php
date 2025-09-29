@@ -52,8 +52,19 @@ class WhatsAppVerificationController extends Controller
         $user->update([
             'whatsapp_number' => $normalizedNumber,
             'whatsapp_verified' => false,
-            'whatsapp_verification_code' => $verificationCode,
             'whatsapp_verified_at' => null,
+        ]);
+
+        // Update verification code directly to ensure it's saved
+        $user->whatsapp_verification_code = $verificationCode;
+        $user->save();
+
+        // Debug: Check if verification code was saved
+        $user->refresh();
+        \Log::info('Verification code saved', [
+            'user_id' => $user->id,
+            'verification_code' => $user->whatsapp_verification_code,
+            'whatsapp_number' => $user->whatsapp_number
         ]);
 
         // Send verification code via WhatsApp
@@ -87,6 +98,14 @@ class WhatsAppVerificationController extends Controller
         ]);
 
         $user = Auth::user();
+
+        // Debug: Check user verification code
+        \Log::info('Verification attempt', [
+            'user_id' => $user->id,
+            'verification_code' => $user->whatsapp_verification_code,
+            'whatsapp_number' => $user->whatsapp_number,
+            'requested_code' => $request->verification_code
+        ]);
 
         if (!$user->whatsapp_verification_code) {
             return response()->json([

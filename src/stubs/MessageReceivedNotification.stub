@@ -12,10 +12,12 @@ class MessageReceivedNotification extends Notification
     use Queueable;
 
     protected $message;
+    protected $sender;
 
-    public function __construct($message)
+    public function __construct($message, $sender = null)
     {
         $this->message = $message;
+        $this->sender = $sender;
     }
 
     public function via($notifiable)
@@ -36,6 +38,11 @@ class MessageReceivedNotification extends Notification
 
     protected function getSenderName()
     {
+        // Use the sender parameter if available
+        if ($this->sender) {
+            return $this->sender->name;
+        }
+
         // For inbound messages, show the sender's name if they're a registered user
         if ($this->message->direction === 'inbound' && $this->message->user) {
             return $this->message->user->name;

@@ -227,6 +227,7 @@ class InstallWhatsAppChatCommand extends Command
         $this->line('   - whatsapp_number (string)');
         $this->line('   - whatsapp_verified (boolean)');
         $this->line('   - whatsapp_verified_at (timestamp)');
+        $this->line('   - whatsapp_verification_code (string, nullable)');
         $this->line('   - type (enum: admin, user)');
         $this->newLine();
 

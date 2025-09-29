@@ -80,7 +80,7 @@ class WhatsAppVerificationController extends Controller
     /**
      * Verify the WhatsApp number
      */
-    public function verifyCode(Request $request)
+    public function verify(Request $request)
     {
         $request->validate([
             'verification_code' => 'required|string|size:6'
@@ -126,7 +126,7 @@ class WhatsAppVerificationController extends Controller
     /**
      * Remove WhatsApp number
      */
-    public function removeWhatsApp(Request $request)
+    public function remove(Request $request)
     {
         $user = Auth::user();
 

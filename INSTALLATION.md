@@ -84,6 +84,7 @@ return new class extends Migration
             $table->string('whatsapp_number')->nullable();
             $table->boolean('whatsapp_verified')->default(false);
             $table->timestamp('whatsapp_verified_at')->nullable();
+            $table->string('whatsapp_verification_code')->nullable();
             $table->enum('type', ['admin', 'user'])->default('user');
         });
     }
@@ -91,7 +92,7 @@ return new class extends Migration
     public function down()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['whatsapp_number', 'whatsapp_verified', 'whatsapp_verified_at', 'type']);
+            $table->dropColumn(['whatsapp_number', 'whatsapp_verified', 'whatsapp_verified_at', 'whatsapp_verification_code', 'type']);
         });
     }
 };
@@ -117,10 +118,11 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'whatsapp_number',        // REQUIRED
-        'whatsapp_verified',      // REQUIRED
-        'whatsapp_verified_at',   // REQUIRED
-        'type',                   // REQUIRED
+        'whatsapp_number',           // REQUIRED
+        'whatsapp_verified',         // REQUIRED
+        'whatsapp_verified_at',      // REQUIRED
+        'whatsapp_verification_code', // REQUIRED
+        'type',                      // REQUIRED
     ];
 
     // ... rest of your model

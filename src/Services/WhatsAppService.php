@@ -3,11 +3,14 @@
 namespace DevsFort\LaravelWhatsappChat\Services;
 
 use DevsFort\LaravelWhatsappChat\Models\WhatsAppMessage;
+use App\Models\User;
 use DevsFort\LaravelWhatsappChat\Events\WhatsAppMessageReceived;
 use DevsFort\LaravelWhatsappChat\Events\WhatsAppMessageSent;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Exception;
+use App\Notifications\MessageReceivedNotification;
+use App\Notifications\MessageSentNotification;
 
 class WhatsAppService
 {
@@ -18,10 +21,10 @@ class WhatsAppService
 
     public function __construct()
     {
-        $this->accessToken = config('whatsapp-chat.access_token');
-        $this->phoneNumberId = config('whatsapp-chat.phone_number_id');
-        $this->webhookVerifyToken = config('whatsapp-chat.webhook_verify_token');
-        $this->baseUrl = config('whatsapp-chat.base_url') . '/' . config('whatsapp-chat.api_version');
+        $this->accessToken = config('whatsapp.access_token');
+        $this->phoneNumberId = config('whatsapp.phone_number_id');
+        $this->webhookVerifyToken = config('whatsapp.webhook_verify_token');
+        $this->baseUrl = 'https://graph.facebook.com/v18.0';
     }
 
     /**
@@ -34,7 +37,7 @@ class WhatsAppService
 
         // Check if we're in mock mode (for development/testing)
         // Use mock mode when phone number is not verified, when explicitly enabled, or when token is invalid/expired
-        $useMockMode = config('whatsapp-chat.use_mock_mode', true) ||
+        $useMockMode = config('whatsapp.use_mock_mode', true) ||
                       $this->accessToken === 'your_access_token_here' ||
                       empty($this->accessToken) ||
                       str_contains($this->accessToken, 'expired') ||
@@ -98,7 +101,7 @@ class WhatsAppService
                 ]);
 
                 // Check if it's an expired token error and auto-mock is enabled
-                if (config('whatsapp-chat.auto_mock_on_token_expiry', true) &&
+                if (config('whatsapp.auto_mock_on_token_expiry', true) &&
                     $response->status() === 401 &&
                     isset($responseData['error']['code']) &&
                     $responseData['error']['code'] === 190 &&
@@ -125,9 +128,33 @@ class WhatsAppService
                     ];
                 }
 
+                // Check for specific WhatsApp errors
+                $errorCode = $responseData['error']['code'] ?? null;
+                $errorMessage = $responseData['error']['message'] ?? 'Unknown error';
+
+                // Handle re-engagement error (131047)
+                if ($errorCode === 131047) {
+                    Log::warning('WhatsApp Re-engagement Error', [
+                        'error_code' => $errorCode,
+                        'error_message' => $errorMessage,
+                        'to' => $normalizedTo,
+                        'original_to' => $to,
+                        'details' => 'Customer must initiate conversation or message within 24 hours'
+                    ]);
+
+                    return [
+                        'success' => false,
+                        'error' => 'Cannot send message: Customer must initiate the conversation or message within 24 hours',
+                        'error_code' => $errorCode,
+                        'error_type' => 're_engagement',
+                        'data' => $responseData
+                    ];
+                }
+
                 return [
                     'success' => false,
-                    'error' => $responseData['error']['message'] ?? 'Unknown error',
+                    'error' => $errorMessage,
+                    'error_code' => $errorCode,
                     'data' => $responseData
                 ];
             }
@@ -278,40 +305,48 @@ class WhatsAppService
                 'message_id' => $messageId
             ]);
 
-            // Check if user exists with this WhatsApp number (normalized)
-            $userModel = config('whatsapp-chat.user_model', 'App\\Models\\User');
-            $user = $userModel::where('whatsapp_number', $from)
+            // For inbound messages, always save them - they come TO the admin business number
+            // Check if sender is a registered user, but save message regardless
+            $senderUser = \App\Models\User::where('whatsapp_number', $from)
                 ->where('whatsapp_verified', true)
                 ->first();
 
-            Log::info('User lookup result', [
+            $adminUser = \App\Models\User::where('type', 'admin')->first();
+
+            Log::info('Processing inbound message', [
                 'from' => $from,
-                'user_found' => $user ? true : false,
-                'user_id' => $user ? $user->id : null,
-                'user_name' => $user ? $user->name : null
+                'body' => $body,
+                'type' => $type,
+                'sender_user_found' => $senderUser ? true : false,
+                'sender_user_id' => $senderUser ? $senderUser->id : null,
+                'admin_user_found' => $adminUser ? true : false,
+                'admin_user_id' => $adminUser ? $adminUser->id : null
             ]);
 
-            if ($user) {
-                // Log the inbound message
-                $messageModel = $this->logMessage($from, $body, 'inbound', $type, $message);
+            // Always save inbound messages - they come TO the admin
+            $messageModel = $this->logMessage($from, $body, 'inbound', $type, $message);
 
-                // Auto-associate with user
-                $messageModel->update(['user_id' => $user->id]);
-
-                // Broadcast the message
-                broadcast(new WhatsAppMessageReceived($messageModel));
-
-                Log::info('Message saved and associated with user', [
+            // Associate with sender user if they exist, otherwise leave user_id as null
+            if ($senderUser) {
+                $messageModel->update(['user_id' => $senderUser->id]);
+                Log::info('Message associated with registered user', [
                     'message_id' => $messageModel->id,
-                    'user_id' => $user->id
+                    'user_id' => $senderUser->id,
+                    'user_name' => $senderUser->name
                 ]);
             } else {
-                // Log that we received a message from unverified user but don't store it
-                Log::info('Received message from unverified WhatsApp number - not saving', [
-                    'from' => $from,
-                    'body' => $body,
-                    'type' => $type,
-                    'note' => 'Message not saved because user not found or not verified'
+                Log::info('Message from unregistered number - saved without user association', [
+                    'message_id' => $messageModel->id,
+                    'from_number' => $from
+                ]);
+            }
+
+            // Broadcast the message to admin
+            if ($adminUser) {
+                broadcast(new WhatsAppMessageReceived($messageModel));
+                Log::info('Inbound message broadcasted to admin', [
+                    'message_id' => $messageModel->id,
+                    'from_number' => $from
                 ]);
             }
 
@@ -388,6 +423,13 @@ class WhatsAppService
      */
     protected function logMessage(string $from, string $body, string $direction, string $type, array $rawData = []): WhatsAppMessage
     {
+        Log::info('logMessage called', [
+            'from' => $from,
+            'body' => $body,
+            'direction' => $direction,
+            'type' => $type
+        ]);
+
         // Extract message_id from raw data if available
         $messageId = null;
         if (isset($rawData['id'])) {
@@ -406,7 +448,72 @@ class WhatsAppService
             'processed_at' => now()
         ]);
 
+        Log::info('Message logged to database', ['message_id' => $message->id]);
+
+        // Trigger notifications based on message direction
+        Log::info('About to trigger notifications', ['message_id' => $message->id, 'direction' => $direction]);
+        $this->triggerMessageNotifications($message, $direction);
+        Log::info('Notifications triggered', ['message_id' => $message->id]);
+
         return $message;
+    }
+
+    /**
+     * Trigger notifications for message events
+     */
+    protected function triggerMessageNotifications(WhatsAppMessage $message, string $direction)
+    {
+        $messageData = [
+            'id' => $message->id,
+            'from' => $message->from,
+            'body' => $message->body,
+            'created_at' => $message->created_at->toISOString()
+        ];
+
+        Log::info('Triggering notifications', [
+            'message_id' => $message->id,
+            'direction' => $direction,
+            'from' => $message->from,
+            'body' => $message->body
+        ]);
+
+        if ($direction === 'inbound') {
+            // User sent message to admin - notify admin users
+            $adminUsers = User::where('type', 'admin')->get();
+            Log::info('Notifying admin users about inbound message', ['admin_count' => $adminUsers->count()]);
+            foreach ($adminUsers as $admin) {
+                $sender = User::where('whatsapp_number', $message->from)->first();
+                $admin->notify(new MessageReceivedNotification($messageData, $sender));
+                Log::info('Notification sent to admin', [
+                    'admin_id' => $admin->id,
+                    'admin_name' => $admin->name,
+                    'sender_name' => $sender ? $sender->name : 'Unknown'
+                ]);
+            }
+        } elseif ($direction === 'outbound') {
+            // Admin sent message to user - notify the recipient user
+            $recipient = User::where('whatsapp_number', $message->from)->first();
+            Log::info('Looking for recipient user', [
+                'whatsapp_number' => $message->from,
+                'recipient_found' => $recipient ? true : false,
+                'recipient_id' => $recipient ? $recipient->id : null
+            ]);
+
+            if ($recipient) {
+                $admin = User::where('type', 'admin')->first();
+                $recipient->notify(new MessageReceivedNotification($messageData, $admin));
+                Log::info('Notification sent to recipient user', [
+                    'recipient_id' => $recipient->id,
+                    'recipient_name' => $recipient->name,
+                    'sender_name' => $admin ? $admin->name : 'Admin'
+                ]);
+            } else {
+                Log::warning('No recipient found for outbound message', [
+                    'whatsapp_number' => $message->from,
+                    'available_users' => User::whereNotNull('whatsapp_number')->pluck('whatsapp_number', 'id')
+                ]);
+            }
+        }
     }
 
     /**
@@ -426,20 +533,108 @@ class WhatsAppService
     }
 
     /**
-     * Get conversation list
+     * Auto-associate message with user if number is verified
+     */
+    protected function associateMessageWithUser(WhatsAppMessage $message, string $from): void
+    {
+        // Find user with this WhatsApp number
+        $user = \App\Models\User::where('whatsapp_number', $from)
+            ->where('whatsapp_verified', true)
+            ->first();
+
+        if ($user) {
+            // Update message with user association
+            $message->update(['user_id' => $user->id]);
+        }
+    }
+
+    /**
+     * Get conversation list separated by registered and external users
      */
     public function getConversations(): array
     {
-        return WhatsAppMessage::select('from')
+        $conversations = WhatsAppMessage::select('from')
             ->selectRaw('MAX(created_at) as last_message_at')
             ->selectRaw('COUNT(*) as message_count')
             ->selectRaw('(SELECT body FROM whats_app_messages w2 WHERE w2.from = whats_app_messages.from ORDER BY w2.created_at DESC LIMIT 1) as last_message')
             ->selectRaw('(SELECT direction FROM whats_app_messages w2 WHERE w2.from = whats_app_messages.from ORDER BY w2.created_at DESC LIMIT 1) as last_direction')
             ->selectRaw('(SELECT u.name FROM users u WHERE u.whatsapp_number = whats_app_messages.from AND u.whatsapp_verified = 1 LIMIT 1) as user_name')
+            ->selectRaw('(SELECT u.id FROM users u WHERE u.whatsapp_number = whats_app_messages.from AND u.whatsapp_verified = 1 LIMIT 1) as user_id')
             ->groupBy('from')
             ->orderBy('last_message_at', 'desc')
             ->get()
             ->toArray();
+
+        // Separate registered and external conversations
+        $registered = [];
+        $external = [];
+
+        foreach ($conversations as $conversation) {
+            if ($conversation['user_name']) {
+                $conversation['type'] = 'registered';
+                $registered[] = $conversation;
+            } else {
+                $conversation['type'] = 'external';
+                $external[] = $conversation;
+            }
+        }
+
+        return [
+            'registered' => $registered,
+            'external' => $external,
+            'all' => $conversations
+        ];
+    }
+
+    /**
+     * Assign external WhatsApp number to a user
+     */
+    public function assignNumberToUser(string $phoneNumber, int $userId): array
+    {
+        try {
+            $user = User::find($userId);
+
+            if (!$user) {
+                return [
+                    'success' => false,
+                    'message' => 'User not found'
+                ];
+            }
+
+            // Update user's WhatsApp number
+            $user->update([
+                'whatsapp_number' => $this->normalizePhoneNumber($phoneNumber),
+                'whatsapp_verified' => true,
+                'whatsapp_verified_at' => now()
+            ]);
+
+            // Update all existing messages from this number to be associated with the user
+            WhatsAppMessage::where('from', $this->normalizePhoneNumber($phoneNumber))
+                ->update(['user_id' => $userId]);
+
+            Log::info('External number assigned to user', [
+                'phone_number' => $phoneNumber,
+                'user_id' => $userId,
+                'user_name' => $user->name
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Number assigned successfully',
+                'user' => $user
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error assigning number to user', [
+                'phone_number' => $phoneNumber,
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Error assigning number: ' . $e->getMessage()
+            ];
+        }
     }
 
     /**
@@ -459,12 +654,12 @@ class WhatsAppService
      */
     public function getUsersWithWhatsApp(): array
     {
-        $userModel = config('whatsapp-chat.user_model', 'App\\Models\\User');
-        return $userModel::where('whatsapp_verified', true)
+        return \App\Models\User::where('whatsapp_verified', true)
             ->whereNotNull('whatsapp_number')
             ->select('id', 'name', 'email', 'whatsapp_number', 'whatsapp_verified_at')
             ->orderBy('name', 'asc')
             ->get()
             ->toArray();
     }
+
 }

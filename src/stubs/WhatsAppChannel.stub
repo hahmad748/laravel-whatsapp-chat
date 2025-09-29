@@ -1,0 +1,52 @@
+<?php
+
+namespace App\Notifications\Channels;
+
+use Illuminate\Notifications\Notification;
+use DevsFort\LaravelWhatsappChat\Services\WhatsAppService;
+
+class WhatsAppChannel
+{
+    protected $whatsappService;
+
+    public function __construct(WhatsAppService $whatsappService)
+    {
+        $this->whatsappService = $whatsappService;
+    }
+
+    public function send($notifiable, Notification $notification)
+    {
+        if (!method_exists($notification, 'toWhatsApp')) {
+            return;
+        }
+
+        $message = $notification->toWhatsApp($notifiable);
+
+        if (!$message || !isset($message['to']) || !isset($message['body'])) {
+            return;
+        }
+
+        try {
+            $result = $this->whatsappService->sendTextMessage(
+                $message['to'],
+                $message['body']
+            );
+
+            if (!$result['success']) {
+                \Log::error('WhatsApp notification failed', [
+                    'error' => $result['message'],
+                    'to' => $message['to'],
+                    'notification' => get_class($notification)
+                ]);
+            }
+
+            return $result;
+        } catch (\Exception $e) {
+            \Log::error('WhatsApp notification exception', [
+                'error' => $e->getMessage(),
+                'to' => $message['to'],
+                'notification' => get_class($notification)
+            ]);
+        }
+    }
+}

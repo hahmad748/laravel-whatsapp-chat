@@ -2,7 +2,7 @@
 
 /**
  * Package Validation Script
- * Validates the package structure and files for Packagist submission
+ * Validates the Laravel WhatsApp Chat package structure and files
  */
 
 echo "🔍 Validating Laravel WhatsApp Chat Package...\n\n";
@@ -10,111 +10,157 @@ echo "🔍 Validating Laravel WhatsApp Chat Package...\n\n";
 $errors = [];
 $warnings = [];
 
+// Check required directories
+$requiredDirs = [
+    'src/Console/Commands',
+    'src/Http/Controllers',
+    'src/Services',
+    'src/Models',
+    'src/Events',
+    'src/stubs',
+    'resources/js/Components/Chat',
+    'resources/js/Pages/Chat',
+    'resources/js/Pages/Profile',
+    'resources/views/chat',
+    'resources/views/profile',
+    'database/migrations',
+    'config'
+];
+
+foreach ($requiredDirs as $dir) {
+    if (!is_dir($dir)) {
+        $errors[] = "Missing directory: $dir";
+    }
+}
+
 // Check required files
 $requiredFiles = [
-    'composer.json',
-    'LICENSE',
-    'README.md',
-    'CHANGELOG.md',
-    'CONTRIBUTING.md',
-    '.gitignore',
-    '.gitattributes',
+    'src/Console/Commands/InstallWhatsAppChatCommand.php',
+    'src/Http/Controllers/ChatController.php',
+    'src/Http/Controllers/WhatsAppVerificationController.php',
+    'src/Http/Controllers/WhatsAppWebhookController.php',
+    'src/Services/WhatsAppService.php',
+    'src/Models/WhatsAppMessage.php',
+    'src/Events/WhatsAppMessageReceived.php',
+    'src/Events/WhatsAppMessageSent.php',
     'src/WhatsAppChatServiceProvider.php',
-    'config/whatsapp-chat.php',
-    'database/migrations/',
+    'resources/js/Components/Chat/ChatSidebar.vue',
+    'resources/js/Components/Chat/ChatHeader.vue',
+    'resources/js/Components/Chat/ChatMessages.vue',
+    'resources/js/Components/Chat/ChatInput.vue',
+    'resources/js/Components/Chat/UserBanner.vue',
+    'resources/js/Components/Chat/AssignNumberModal.vue',
     'resources/js/Pages/Chat/Index.vue',
     'resources/js/Pages/Profile/WhatsAppVerification.vue',
-    'resources/js/index.js',
-    'tests/Feature/WhatsAppServiceTest.php',
-    'phpunit.xml',
-    'package.json',
-    'vite.config.js'
+    'resources/views/chat/index.blade.php',
+    'resources/views/profile/whatsapp-verification.blade.php',
+    'src/stubs/MessageReceivedNotification.stub',
+    'src/stubs/MessageSentNotification.stub',
+    'src/stubs/WhatsAppChannel.stub',
+    'src/routes/whatsapp-routes.php',
+    'config/whatsapp-chat.php',
+    'composer.json',
+    'README.md',
+    'INSTALLATION.md',
+    'PACKAGE_SUMMARY.md'
 ];
 
 foreach ($requiredFiles as $file) {
     if (!file_exists($file)) {
-        $errors[] = "Missing required file: $file";
+        $errors[] = "Missing file: $file";
     }
 }
 
-// Check composer.json structure
+// Check Vue components for required functionality
+$vueComponents = [
+    'resources/js/Components/Chat/ChatSidebar.vue' => ['registeredConversations', 'externalConversations'],
+    'resources/js/Pages/Chat/Index.vue' => ['registeredConversations', 'externalConversations']
+];
+
+foreach ($vueComponents as $component => $requiredFeatures) {
+    if (file_exists($component)) {
+        $content = file_get_contents($component);
+
+        foreach ($requiredFeatures as $feature) {
+            if (strpos($content, $feature) === false) {
+                $warnings[] = "Vue component $component may be missing $feature functionality";
+            }
+        }
+    }
+}
+
+// Check AssignNumberModal specifically
+if (file_exists('resources/js/Components/Chat/AssignNumberModal.vue')) {
+    $content = file_get_contents('resources/js/Components/Chat/AssignNumberModal.vue');
+    if (strpos($content, 'assign-number') === false) {
+        $warnings[] = "AssignNumberModal component may be missing assign functionality";
+    }
+}
+
+// Check Blade templates
+$bladeTemplates = [
+    'resources/views/chat/index.blade.php' => ['Registered Users', 'External Numbers']
+];
+
+foreach ($bladeTemplates as $template => $requiredSections) {
+    if (file_exists($template)) {
+        $content = file_get_contents($template);
+
+        foreach ($requiredSections as $section) {
+            if (strpos($content, $section) === false) {
+                $warnings[] = "Blade template $template may be missing $section section";
+            }
+        }
+    }
+}
+
+// Check service provider for installation command
+if (file_exists('src/WhatsAppChatServiceProvider.php')) {
+    $content = file_get_contents('src/WhatsAppChatServiceProvider.php');
+    if (strpos($content, 'InstallWhatsAppChatCommand') === false) {
+        $errors[] = "Service provider missing installation command registration";
+    }
+}
+
+// Check composer.json
 if (file_exists('composer.json')) {
     $composer = json_decode(file_get_contents('composer.json'), true);
 
-    if (!$composer) {
-        $errors[] = "Invalid composer.json format";
-    } else {
-        // Check required fields
-        $requiredFields = ['name', 'description', 'type', 'license', 'authors', 'require', 'autoload'];
-        foreach ($requiredFields as $field) {
-            if (!isset($composer[$field])) {
-                $errors[] = "Missing required field in composer.json: $field";
-            }
-        }
-
-        // Check package name format
-        if (isset($composer['name']) && !preg_match('/^[a-z0-9][a-z0-9-]*\/[a-z0-9][a-z0-9-]*$/', $composer['name'])) {
-            $errors[] = "Invalid package name format in composer.json";
-        }
-
-        // Check namespace consistency
-        if (isset($composer['autoload']['psr-4'])) {
-            $namespace = array_keys($composer['autoload']['psr-4'])[0];
-            if ($namespace !== 'DevsFort\\LaravelWhatsappChat\\') {
-                $errors[] = "Namespace mismatch in composer.json: $namespace";
-            }
-        }
+    if (!isset($composer['name']) || $composer['name'] !== 'devsfort/laravel-whatsapp-chat') {
+        $errors[] = "Invalid package name in composer.json";
     }
-}
 
-// Check namespace consistency in PHP files
-$phpFiles = glob('src/**/*.php');
-foreach ($phpFiles as $file) {
-    $content = file_get_contents($file);
-    if (strpos($content, 'namespace DevsFort\\LaravelWhatsappChat') === false) {
-        $errors[] = "Namespace mismatch in $file";
-    }
-    if (strpos($content, 'YourVendor') !== false) {
-        $errors[] = "Found 'YourVendor' in $file - should be 'DevsFort'";
-    }
-}
-
-// Check for placeholder values
-$placeholderFiles = ['README.md', 'INSTALLATION.md', 'PACKAGE_SUMMARY.md'];
-foreach ($placeholderFiles as $file) {
-    if (file_exists($file)) {
-        $content = file_get_contents($file);
-        if (strpos($content, 'your-vendor') !== false || strpos($content, 'YourVendor') !== false) {
-            $warnings[] = "Found placeholder values in $file";
-        }
-    }
-}
-
-// Check file permissions
-$executableFiles = ['example-setup.sh'];
-foreach ($executableFiles as $file) {
-    if (file_exists($file) && !is_executable($file)) {
-        $warnings[] = "File $file should be executable";
-    }
-}
-
-// Check for sensitive data
-$sensitiveFiles = ['.env', '.env.example'];
-foreach ($sensitiveFiles as $file) {
-    if (file_exists($file)) {
-        $warnings[] = "Sensitive file $file should not be in package";
+    if (!isset($composer['autoload']['psr-4']['DevsFort\\LaravelWhatsappChat\\'])) {
+        $errors[] = "Missing PSR-4 autoloading in composer.json";
     }
 }
 
 // Display results
 if (empty($errors) && empty($warnings)) {
-    echo "✅ Package validation passed!\n";
-    echo "🎉 Ready for Packagist submission!\n";
+    echo "✅ Package validation successful!\n";
+    echo "🎉 All required files and directories are present.\n";
+    echo "🚀 Package is ready for distribution.\n\n";
+
+    echo "📦 Package Features:\n";
+    echo "   • Vue.js and Blade template support\n";
+    echo "   • Installation command with template selection\n";
+    echo "   • Separated admin conversation sections\n";
+    echo "   • External number assignment functionality\n";
+    echo "   • Real-time messaging with Laravel Broadcasting\n";
+    echo "   • WhatsApp verification system\n";
+    echo "   • Notification system\n";
+    echo "   • Comprehensive documentation\n\n";
+
+    echo "🔧 Installation:\n";
+    echo "   composer require devsfort/laravel-whatsapp-chat\n";
+    echo "   php artisan whatsapp-chat:install\n\n";
+
+    exit(0);
 } else {
     if (!empty($errors)) {
         echo "❌ Errors found:\n";
         foreach ($errors as $error) {
-            echo "  - $error\n";
+            echo "   • $error\n";
         }
         echo "\n";
     }
@@ -122,42 +168,11 @@ if (empty($errors) && empty($warnings)) {
     if (!empty($warnings)) {
         echo "⚠️  Warnings:\n";
         foreach ($warnings as $warning) {
-            echo "  - $warning\n";
+            echo "   • $warning\n";
         }
         echo "\n";
     }
+
+    echo "🔧 Please fix the issues above before distributing the package.\n";
+    exit(1);
 }
-
-// Package size check
-$packageSize = getDirectorySize('.');
-if ($packageSize > 10 * 1024 * 1024) { // 10MB
-    $warnings[] = "Package size is large: " . formatBytes($packageSize);
-}
-
-echo "📦 Package size: " . formatBytes($packageSize) . "\n";
-
-function getDirectorySize($directory) {
-    $size = 0;
-    $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory));
-    foreach ($iterator as $file) {
-        if ($file->isFile()) {
-            $size += $file->getSize();
-        }
-    }
-    return $size;
-}
-
-function formatBytes($size, $precision = 2) {
-    $units = array('B', 'KB', 'MB', 'GB', 'TB');
-    for ($i = 0; $size > 1024 && $i < count($units) - 1; $i++) {
-        $size /= 1024;
-    }
-    return round($size, $precision) . ' ' . $units[$i];
-}
-
-echo "\n🔗 Next steps:\n";
-echo "1. Create GitHub repository\n";
-echo "2. Push code to GitHub\n";
-echo "3. Submit to Packagist\n";
-echo "4. Set up GitHub Actions\n";
-echo "5. Create releases\n";

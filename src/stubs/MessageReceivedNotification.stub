@@ -1,0 +1,52 @@
+<?php
+
+namespace App\Notifications;
+
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
+
+class MessageReceivedNotification extends Notification
+{
+    use Queueable;
+
+    protected $message;
+
+    public function __construct($message)
+    {
+        $this->message = $message;
+    }
+
+    public function via($notifiable)
+    {
+        return ['database'];
+    }
+
+    public function toDatabase($notifiable)
+    {
+        return [
+            'message_id' => $this->message->id,
+            'sender_name' => $this->getSenderName(),
+            'message_preview' => substr($this->message->body, 0, 100),
+            'conversation_id' => $this->message->from,
+            'action_url' => url('/chat?conversation=' . urlencode($this->message->from)),
+        ];
+    }
+
+    protected function getSenderName()
+    {
+        // For inbound messages, show the sender's name if they're a registered user
+        if ($this->message->direction === 'inbound' && $this->message->user) {
+            return $this->message->user->name;
+        }
+
+        // For outbound messages, show "Admin"
+        if ($this->message->direction === 'outbound') {
+            return 'Admin';
+        }
+
+        // Fallback to phone number
+        return $this->message->from;
+    }
+}

@@ -34,22 +34,35 @@ class WhatsAppChatServiceProvider extends ServiceProvider
         // Publish config file
         $this->publishes([
             __DIR__ . '/../config/whatsapp-chat.php' => config_path('whatsapp-chat.php'),
-        ], 'whatsapp-chat-config');
+        ], 'config');
 
         // Publish migrations
         $this->publishes([
             __DIR__ . '/../database/migrations' => database_path('migrations'),
-        ], 'whatsapp-chat-migrations');
+        ], 'migrations');
 
         // Publish Vue components
         $this->publishes([
-            __DIR__ . '/../resources/js' => resource_path('js/vendor/whatsapp-chat'),
-        ], 'whatsapp-chat-assets');
+            __DIR__ . '/../resources/js/Components/Chat' => resource_path('js/Components/Chat'),
+            __DIR__ . '/../resources/js/Pages/Chat' => resource_path('js/Pages/Chat'),
+            __DIR__ . '/../resources/js/Pages/Profile' => resource_path('js/Pages/Profile'),
+        ], 'vue-components');
 
-        // Publish package assets (CSS, JS, etc.)
+        // Publish Blade views
         $this->publishes([
-            __DIR__ . '/../resources' => resource_path('views/vendor/whatsapp-chat'),
-        ], 'whatsapp-chat-views');
+            __DIR__ . '/../resources/views' => resource_path('views/vendor/whatsapp-chat'),
+        ], 'blade-views');
+
+        // Publish JavaScript files
+        $this->publishes([
+            __DIR__ . '/../resources/js' => resource_path('js/vendor/whatsapp-chat'),
+        ], 'js');
+
+        // Publish CSS and JS assets
+        $this->publishes([
+            __DIR__ . '/../resources/css' => public_path('vendor/whatsapp-chat/css'),
+            __DIR__ . '/../resources/js' => public_path('vendor/whatsapp-chat/js'),
+        ], 'assets');
 
         // Load migrations
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
@@ -61,6 +74,7 @@ class WhatsAppChatServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 \DevsFort\LaravelWhatsappChat\Console\Commands\WhatsAppTokenStatus::class,
+                \DevsFort\LaravelWhatsappChat\Console\Commands\InstallWhatsAppChatCommand::class,
             ]);
         }
     }

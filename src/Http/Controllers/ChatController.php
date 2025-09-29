@@ -7,6 +7,7 @@ use DevsFort\LaravelWhatsappChat\Models\WhatsAppMessage;
 use App\Models\Deal;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Routing\Controller;
 use Inertia\Inertia;
 use Inertia\Response;
 

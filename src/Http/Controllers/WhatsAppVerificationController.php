@@ -4,7 +4,7 @@ namespace DevsFort\LaravelWhatsappChat\Http\Controllers;
 
 use DevsFort\LaravelWhatsappChat\Services\WhatsAppService;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
+use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Inertia\Inertia;

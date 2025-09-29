@@ -5,7 +5,7 @@ namespace DevsFort\LaravelWhatsappChat\Http\Controllers;
 use DevsFort\LaravelWhatsappChat\Services\WhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use App\Http\Controllers\Controller;
+use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Log;
 
 class WhatsAppWebhookController extends Controller

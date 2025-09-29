@@ -67,8 +67,8 @@ class WhatsAppChatServiceProvider extends ServiceProvider
         // Load migrations
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
 
-        // Register routes
-        $this->registerRoutes();
+        // Register routes (disabled - handled by installation command)
+        // $this->registerRoutes();
 
         // Register commands
         if ($this->app->runningInConsole()) {
@@ -85,7 +85,7 @@ class WhatsAppChatServiceProvider extends ServiceProvider
     protected function registerRoutes(): void
     {
         Route::group([
-            'prefix' => config('whatsapp-chat.route_prefix', 'whatsapp'),
+            'prefix' => config('whatsapp-chat.route_prefix', ''),
             'middleware' => config('whatsapp-chat.middleware', ['web']),
         ], function () {
             // Webhook routes (no CSRF protection)

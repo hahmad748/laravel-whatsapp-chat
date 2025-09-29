@@ -77,7 +77,7 @@ const loadMessages = async () => {
     if (!selectedConversation.value) return
 
     try {
-        const response = await axios.get(route('chat.messages', { conversationId: selectedConversation.value }))
+        const response = await axios.get(`/chat/messages/${selectedConversation.value}`)
         if (response.data.success) {
             messages.value = response.data.messages
             // Scroll to bottom after messages are loaded
@@ -96,7 +96,7 @@ const sendMessage = async (messageText) => {
     sending.value = true
 
     try {
-        const response = await axios.post(route('chat.send'), {
+        const response = await axios.post('/chat/send', {
             to: selectedConversation.value,
             message: messageText
         })

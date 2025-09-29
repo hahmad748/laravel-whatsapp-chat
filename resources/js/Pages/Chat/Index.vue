@@ -113,7 +113,7 @@ const loadMessages = async () => {
     if (!selectedConversation.value) return
 
     try {
-        const response = await axios.get(route('chat.messages', { conversationId: selectedConversation.value }))
+        const response = await axios.get(`/chat/messages/${selectedConversation.value}`)
         if (response.data.success) {
             messages.value = response.data.messages
             console.log('Messages loaded:', messages.value.length)
@@ -136,7 +136,7 @@ const sendMessage = async (messageText) => {
     sending.value = true
 
     try {
-        const response = await axios.post(route('chat.send'), {
+        const response = await axios.post('/chat/send', {
             to: selectedConversation.value,
             message: messageText
         })
@@ -231,7 +231,7 @@ onMounted(async () => {
     if (!echo.value) {
         setInterval(async () => {
             try {
-                const response = await axios.get(route('chat.conversations'))
+                const response = await axios.get('/chat/conversations')
                 if (response.data.success) {
                     conversations.value = response.data.conversations
                 }

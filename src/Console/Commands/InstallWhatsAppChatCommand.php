@@ -127,16 +127,34 @@ class InstallWhatsAppChatCommand extends Command
     protected function publishRoutes()
     {
         $routesPath = base_path('routes/web.php');
-        $whatsappRoutes = file_get_contents(__DIR__ . '/../../routes/whatsapp-routes.php');
+
+        // Check if web.php exists
+        if (!File::exists($routesPath)) {
+            $this->warn('⚠️ routes/web.php not found. Please create it manually and run the installation again.');
+            return;
+        }
+
+        $whatsappRoutes = file_get_contents(__DIR__ . '/../../routes/whatsapp-routes-only.php');
 
         // Check if routes already exist
-        if (strpos(file_get_contents($routesPath), 'whatsapp-chat') !== false) {
+        $existingContent = file_get_contents($routesPath);
+        if (strpos($existingContent, 'whatsapp-chat') !== false || strpos($existingContent, 'WhatsApp Chat Routes') !== false) {
             $this->warn('⚠️ WhatsApp Chat routes already exist in web.php');
             return;
         }
 
+        // Validate that web.php ends with proper PHP syntax
+        if (!preg_match('/\?>\s*$/', $existingContent) && !preg_match('/;\s*$/', trim($existingContent))) {
+            $this->warn('⚠️ routes/web.php does not end with proper PHP syntax. Please check the file manually.');
+        }
+
         // Append routes to web.php
-        file_put_contents($routesPath, "\n\n" . $whatsappRoutes, FILE_APPEND);
+        if (file_put_contents($routesPath, "\n\n" . $whatsappRoutes, FILE_APPEND) === false) {
+            $this->error('❌ Failed to write routes to web.php. Please check file permissions.');
+            return;
+        }
+
+        $this->info('✅ Routes added to web.php');
     }
 
     protected function createExampleNotifications()
@@ -218,7 +236,12 @@ class InstallWhatsAppChatCommand extends Command
             $this->line('   <comment>npm install @inertiajs/vue3</comment>');
             $this->line('   <comment>php artisan inertia:middleware</comment>');
             $this->newLine();
-            $this->line('4. Add the chat route to your navigation:');
+            $this->line('4. (Optional) Install Ziggy for route helper in JavaScript:');
+            $this->line('   <comment>composer require tightenco/ziggy</comment>');
+            $this->line('   <comment>npm install ziggy-js</comment>');
+            $this->line('   Add to your app.js: <comment>import { Ziggy } from "ziggy-js"; window.route = (name, params, absolute, config) => Ziggy.route(name, params, absolute, config);</comment>');
+            $this->newLine();
+            $this->line('5. Add the chat route to your navigation:');
             $this->line('   <comment>&lt;Link href="/chat"&gt;WhatsApp Chat&lt;/Link&gt;</comment>');
         } else {
             $this->line('3. Add the chat route to your navigation:');
@@ -226,10 +249,10 @@ class InstallWhatsAppChatCommand extends Command
         }
 
         $this->newLine();
-        $this->line('5. Set up your WhatsApp webhook URL:');
+        $this->line('6. Set up your WhatsApp webhook URL:');
         $this->line('   <comment>https://yourdomain.com/webhook/whatsapp</comment>');
         $this->newLine();
-        $this->line('6. Run <comment>php artisan serve</comment> and visit <comment>/chat</comment> to test!');
+        $this->line('7. Run <comment>php artisan serve</comment> and visit <comment>/chat</comment> to test!');
         $this->newLine();
         $this->info('📚 For more information, visit: https://github.com/devsfort/laravel-whatsapp-chat');
     }

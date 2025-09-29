@@ -162,7 +162,7 @@ const sendVerificationCode = async () => {
     success.value = ''
 
     try {
-        const response = await axios.post(route('whatsapp.verification.send'), {
+        const response = await axios.post('/profile/whatsapp-verification/send', {
             whatsapp_number: form.whatsapp_number
         })
 
@@ -185,7 +185,7 @@ const verifyCode = async () => {
     success.value = ''
 
     try {
-        const response = await axios.post(route('whatsapp.verification.verify'), {
+        const response = await axios.post('/profile/whatsapp-verification/verify', {
             verification_code: form.verification_code
         })
 
@@ -209,7 +209,7 @@ const resendCode = async () => {
     success.value = ''
 
     try {
-        const response = await axios.post(route('whatsapp.verification.send'), {
+        const response = await axios.post('/profile/whatsapp-verification/send', {
             whatsapp_number: form.whatsapp_number
         })
 
@@ -235,7 +235,7 @@ const removeWhatsApp = async () => {
     success.value = ''
 
     try {
-        const response = await axios.post(route('whatsapp.verification.remove'))
+        const response = await axios.post('/profile/whatsapp-verification/remove')
 
         if (response.data.success) {
             success.value = response.data.message

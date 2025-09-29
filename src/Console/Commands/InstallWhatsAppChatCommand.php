@@ -64,8 +64,20 @@ class InstallWhatsAppChatCommand extends Command
 
         // Create example notification classes
         $this->info('🔔 Creating example notification classes...');
-        $this->createExampleNotifications();
-        $this->info('✅ Example notifications created');
+        try {
+            $this->createExampleNotifications();
+            $this->info('✅ Example notifications created');
+        } catch (\Exception $e) {
+            $this->warn('⚠️ Warning: Could not create some notification files: ' . $e->getMessage());
+            $this->newLine();
+            $this->info('🔧 Manual fix options:');
+            $this->line('1. Create directories manually:');
+            $this->line('   mkdir -p app/Notifications/Channels');
+            $this->line('2. Run the installation command again:');
+            $this->line('   php artisan whatsapp-chat:install');
+            $this->line('3. Or create the notification files manually from the stubs in the package.');
+            $this->newLine();
+        }
 
         $this->newLine();
         $this->info('🎉 Laravel WhatsApp Chat Package installed successfully!');
@@ -134,6 +146,12 @@ class InstallWhatsAppChatCommand extends Command
             File::makeDirectory($notificationsPath, 0755, true);
         }
 
+        // Create Channels directory
+        $channelsPath = app_path('Notifications/Channels');
+        if (!File::exists($channelsPath)) {
+            File::makeDirectory($channelsPath, 0755, true);
+        }
+
         // Create example notification classes
         $this->createFile(
             app_path('Notifications/MessageReceivedNotification.php'),
@@ -149,12 +167,35 @@ class InstallWhatsAppChatCommand extends Command
             app_path('Notifications/Channels/WhatsAppChannel.php'),
             file_get_contents(__DIR__ . '/../../stubs/WhatsAppChannel.stub')
         );
+
+        // Verify files were created
+        $files = [
+            app_path('Notifications/MessageReceivedNotification.php'),
+            app_path('Notifications/MessageSentNotification.php'),
+            app_path('Notifications/Channels/WhatsAppChannel.php'),
+        ];
+
+        foreach ($files as $file) {
+            if (!File::exists($file)) {
+                throw new \Exception("Failed to create notification file: $file");
+            }
+        }
     }
 
     protected function createFile($path, $content)
     {
         if (!File::exists($path)) {
-            File::put($path, $content);
+            // Ensure directory exists
+            $directory = dirname($path);
+            if (!File::exists($directory)) {
+                if (!File::makeDirectory($directory, 0755, true)) {
+                    throw new \Exception("Failed to create directory: $directory");
+                }
+            }
+
+            if (!File::put($path, $content)) {
+                throw new \Exception("Failed to create file: $path");
+            }
         }
     }
 
